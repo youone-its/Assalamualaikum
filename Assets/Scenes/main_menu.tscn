@@ -1,11 +1,35 @@
-[gd_scene format=3 uid="uid://gxbcxtjjnj5"]
+[gd_scene load_steps=4 format=3 uid="uid://gxbcxtjjnj5"]
+
+[ext_resource type="Texture2D" uid="uid://cluehm6rovn2i" path="res://Assets/Background/SIAM.jpeg" id="1_x6jn2"]
+[ext_resource type="Texture2D" uid="uid://cvdklbbxfyit" path="res://Assets/Sprites/player.png" id="2_tanm1"]
+[ext_resource type="Script" uid="uid://d2mfjs5ikfxan" path="res://Assets/Scripts/CharacterBody2D.gd" id="3_6qsvb"]
 
 [node name="Node2D" type="Node2D"]
 
-[node name="Control" type="Control" parent="."]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="Background" type="Sprite2D" parent="."]
+scale = Vector2(3, 3.139)
+texture = ExtResource("1_x6jn2")
+centered = false
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+position = Vector2(1, 0)
+script = ExtResource("3_6qsvb")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D"]
+scale = Vector2(5, 5)
+texture = ExtResource("2_tanm1")
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
+
+[node name="Camera2D" type="Camera2D" parent="CharacterBody2D"]
+limit_left = 0
+limit_top = 0
+limit_right = 1644
+limit_bottom = 2649
+position_smoothing_enabled = true
+drag_left_margin = 0.0
+drag_top_margin = 0.0
+drag_right_margin = 0.0
+drag_bottom_margin = 0.0
