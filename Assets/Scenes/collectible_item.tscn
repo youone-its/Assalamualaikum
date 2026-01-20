@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://c1w4p6xd35ih1"]
+
+[ext_resource type="Script" uid="uid://bf755ysdhwyfj" path="res://Assets/Scripts/collectible_item.gd" id="1_j5nbk"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_m4ftl"]
+
+[node name="CollectibleItem" type="Area2D" groups=["items"]]
+z_index = 5
+script = ExtResource("1_j5nbk")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_m4ftl")
+
+[node name="PickupButton" type="Button" parent="."]
+visible = false
+offset_left = 16.0
+offset_top = -54.0
+offset_right = 69.0
+offset_bottom = -23.0
+text = "Ambil"
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
