@@ -1,8 +1,26 @@
-[gd_scene load_steps=4 format=3 uid="uid://gxbcxtjjnj5"]
+[gd_scene load_steps=10 format=3 uid="uid://gxbcxtjjnj5"]
 
 [ext_resource type="Texture2D" uid="uid://cluehm6rovn2i" path="res://Assets/Background/SIAM.jpeg" id="1_x6jn2"]
 [ext_resource type="Texture2D" uid="uid://cvdklbbxfyit" path="res://Assets/Sprites/player.png" id="2_tanm1"]
 [ext_resource type="Script" uid="uid://d2mfjs5ikfxan" path="res://Assets/Scripts/CharacterBody2D.gd" id="3_6qsvb"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cbhea"]
+bg_color = Color(0.6784314, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tanm1"]
+bg_color = Color(0.6784314, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6qsvb"]
+bg_color = Color(0.9490196, 0.5882353, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fadmi"]
+bg_color = Color(0, 0.6, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_shbfh"]
+bg_color = Color(0.36775693, 0.62592906, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hxcs8"]
+bg_color = Color(0.6, 0, 0.6, 1)
 
 [node name="Node2D" type="Node2D"]
 
@@ -67,3 +85,31 @@ text = "Save Game"
 [node name="TombolKeluar" type="Button" parent="CharacterBody2D/CanvasLayer/PauseMenu/VBoxContainer"]
 layout_mode = 2
 text = "Keluar"
+
+[node name="StatusBars" type="VBoxContainer" parent="CharacterBody2D/CanvasLayer"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HealthBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_cbhea")
+theme_override_styles/fill = SubResource("StyleBoxFlat_tanm1")
+step = 0.1
+
+[node name="HungerBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_6qsvb")
+
+[node name="ThirstBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_fadmi")
+
+[node name="StaminaBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_shbfh")
+
+[node name="SanityBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hxcs8")
+
+[node name="DayNightCycle" type="CanvasModulate" parent="."]
