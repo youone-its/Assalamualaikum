@@ -33,3 +33,37 @@ drag_left_margin = 0.0
 drag_top_margin = 0.0
 drag_right_margin = 0.0
 drag_bottom_margin = 0.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="CharacterBody2D"]
+
+[node name="PauseMenu" type="ColorRect" parent="CharacterBody2D/CanvasLayer"]
+process_mode = 3
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.011764706, 0.011764706, 0, 0.4745098)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CharacterBody2D/CanvasLayer/PauseMenu"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TombolSave" type="Button" parent="CharacterBody2D/CanvasLayer/PauseMenu/VBoxContainer"]
+layout_mode = 2
+text = "Save Game"
+
+[node name="TombolKeluar" type="Button" parent="CharacterBody2D/CanvasLayer/PauseMenu/VBoxContainer"]
+layout_mode = 2
+text = "Keluar"
