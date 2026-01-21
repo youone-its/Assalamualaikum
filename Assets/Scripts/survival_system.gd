@@ -1,202 +1,262 @@
 extends Node
 
-# --- SETTING WAKTU ---
-@export var seconds_per_day = 300.0 
-var current_time = 0.0
+# ==========================================
+# 1. SETUP REFERENSI
+# ==========================================
 
-# --- REFERENSI UI STATS ---
-@onready var ui_health = $"../CanvasLayer/StatusBars/HealthBar"
-@onready var ui_hunger = $"../CanvasLayer/StatusBars/HungerBar"
-@onready var ui_thirst = $"../CanvasLayer/StatusBars/ThirstBar"
-@onready var ui_sanity = $"../CanvasLayer/StatusBars/SanityBar"
-@onready var ui_stamina = $"../CanvasLayer/StatusBars/StaminaBar"
+@onready var char_nodes = [
+	$"../Person",    # Index 0
+	$"../Hexapod",   # Index 1
+	$"../Quadruped"  # Index 2
+]
 
-# --- REFERENSI UI INVENTORY ---
+# Path File Save
+const SAVE_PATH = "user://savegame.save"
+
+# DATABASE KARAKTER (Inventory + Stats + POSISI)
+var db_karakter = {
+	0: { "nama": "Person", "max_tas": 10, "puse_kanan": true, "stats": {}, "pos": Vector2.ZERO },
+	1: { "nama": "Hexapod", "max_tas": 15, "puse_kanan": false, "stats": {}, "pos": Vector2.ZERO },
+	2: { "nama": "Quadruped", "max_tas": 15, "puse_kanan": false, "stats": {}, "pos": Vector2.ZERO }
+}
+
+var current_char_index = 0 
+var player_aktif = null
+
+# ==========================================
+# 2. VARIABEL AKTIF (Display)
+# ==========================================
+var health = 100.0; var hunger = 100.0; var thirst = 100.0
+var stamina = 100.0; var sanity = 100.0
+var max_val = 100.0
+
+var tas_isi = []
+var item_tangan_kiri = null
+var item_tangan_kanan = null
+var max_slot_saat_ini = 10
+var punya_tangan_kanan = true
+
 @onready var inv_window = $"../CanvasLayer/InventoryWindow"
 @onready var grid_container = $"../CanvasLayer/InventoryWindow/GridBarang"
 @onready var slot_kiri_icon = $"../CanvasLayer/HUD_Bawah/SlotKiri/TextureRect"
 @onready var slot_kanan_icon = $"../CanvasLayer/HUD_Bawah/SlotKanan/TextureRect"
+@onready var slot_kanan_box = $"../CanvasLayer/HUD_Bawah/SlotKanan" 
 
-# --- DATA PLAYER & SYSTEM ---
-@onready var player = get_parent()
-@onready var day_night_modulate = get_node_or_null("../../DayNightCycle")
-@onready var pause_menu = $"../CanvasLayer/PauseMenu"
+@onready var ui_health = $"../CanvasLayer/StatusBars/HealthBar"
+@onready var ui_hunger = $"../CanvasLayer/StatusBars/HungerBar"
+@onready var ui_thirst = $"../CanvasLayer/StatusBars/ThirstBar"
+@onready var ui_stamina = $"../CanvasLayer/StatusBars/StaminaBar"
+@onready var ui_sanity = $"../CanvasLayer/StatusBars/SanityBar"
 
-# --- STATS ---
-var max_val = 100.0
-var health = 100.0; var hunger = 100.0; var thirst = 100.0
-var stamina = 100.0; var sanity = 100.0
+@export var seconds_per_day = 300.0 
+var current_time = 0.0
 var gradient_warna = Gradient.new()
+@onready var day_night_modulate = get_node_or_null("../../DayNightCycle")
 
-# --- SYSTEM INVENTORY BARU ---
-# Format Data Barang: { "tipe": "food", "amount": 20, "icon": "res://path/img.png" }
-var tas_isi = [] # Array kosong, maksimal 10
-var max_slot_tas = 10
-var item_tangan_kiri = null
-var item_tangan_kanan = null
+# ==========================================
+# 3. MAIN LOOP & INIT
+# ==========================================
 
 func _ready():
 	setup_tema_waktu()
-	# Load game & update tampilan inventory kosong
-	update_ui_inventory() 
+	setup_pause_menu()
 	
-	# Pause Menu Connect
-	$"../CanvasLayer/PauseMenu/VBoxContainer/TombolSave".pressed.connect(save_game)
-	$"../CanvasLayer/PauseMenu/VBoxContainer/TombolKeluar".pressed.connect(quit_game)
+	# Matikan semua karakter dulu
+	for c in char_nodes: c.set_active(false)
+	
+	# --- LOGIKA LOAD GAME ---
+	# Cek apakah ada file save?
+	if FileAccess.file_exists(SAVE_PATH):
+		print("File Save Ditemukan! Memuat data...")
+		load_game_from_disk()
+	else:
+		print("Save Tidak Ditemukan. Memulai Game Baru...")
+		init_database_awal()
+		# Set posisi awal default (jika perlu)
+		# db_karakter[0]["pos"] = Vector2(0,0)
+		load_character_data(0)
 
 func _process(delta):
 	update_waktu(delta)
-	update_stats_decay(delta)
-	handle_sanity_mechanic(delta)
-	handle_stamina_regen(delta)
-	update_ui_visual()
 	update_warna_langit()
+	if player_aktif: 
+		update_stats_decay(delta)
+		handle_sanity_stamina(delta)
+	update_ui_visual()
 
-# --- INPUT KEYBOARD (1, 2, 3) ---
 func _input(event):
-	if event.is_action_pressed("ui_cancel"):
-		toggle_pause()
-		
-	# LOGIKA BUKA TAS (UPDATE)
-	if event.is_action_pressed("buka_tas"): # Tekan 2
-		inv_window.visible = !inv_window.visible
-		update_ui_inventory()
-		
-		# FITUR BARU: Kalau tas dibuka dan ada isinya, langsung fokus ke item pertama
-		# Biar panah keyboard langsung jalan
-		if inv_window.visible and tas_isi.size() > 0:
-			# Kita tunggu sebentar (1 frame) biar UI selesai digambar dulu
-			await get_tree().process_frame
-			var item_pertama = grid_container.get_child(0)
-			if item_pertama:
-				item_pertama.grab_focus()
-
-	if event.is_action_pressed("slot_kiri"):
-		gunakan_item_tangan("kiri")
-		
+	if event.is_action_pressed("ui_cancel"): toggle_pause()
+	if event.is_action_pressed("switch_char"): switch_character()
+	if event.is_action_pressed("buka_tas"): toggle_inventory_window()
+	if event.is_action_pressed("slot_kiri"): gunakan_item_tangan("kiri")
 	if event.is_action_pressed("slot_kanan"):
-		gunakan_item_tangan("kanan")
+		if punya_tangan_kanan: gunakan_item_tangan("kanan")
 
-# --- UPDATE TAMPILAN INVENTORY (UPDATE BESAR) ---
+# ==========================================
+# 4. SISTEM SAVE & LOAD (DISK)
+# ==========================================
+
+func save_game_to_disk():
+	# 1. Pastikan data karakter yang SEDANG dimainkan tersimpan ke DB dulu
+	save_current_data_to_ram()
+	
+	# 2. Update POSISI semua karakter ke Database
+	for i in range(char_nodes.size()):
+		db_karakter[i]["pos"] = char_nodes[i].global_position
+	
+	# 3. Bungkus semua data penting
+	var data_save = {
+		"database": db_karakter,
+		"current_idx": current_char_index,
+		"time": current_time
+	}
+	
+	# 4. Tulis ke File
+	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	file.store_var(data_save)
+	file.close()
+	
+	print("Game Berhasil Disimpan ke: ", SAVE_PATH)
+	toggle_pause() # Tutup menu pause
+
+func load_game_from_disk():
+	# 1. Buka File
+	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var data_save = file.get_var()
+	file.close()
+	
+	# 2. Kembalikan Data ke Variabel System
+	db_karakter = data_save["database"]
+	current_char_index = data_save["current_idx"]
+	current_time = data_save["time"]
+	
+	# 3. Pindahkan Posisi Karakter Sesuai Save
+	for i in range(char_nodes.size()):
+		char_nodes[i].global_position = db_karakter[i]["pos"]
+	
+	# 4. Aktifkan Karakter Terakhir
+	load_character_data(current_char_index)
+
+# ==========================================
+# 5. LOGIKA SWITCH CHARACTER & DB (RAM)
+# ==========================================
+
+func init_database_awal():
+	for i in db_karakter.keys():
+		db_karakter[i]["tas"] = []
+		db_karakter[i]["kiri"] = null
+		db_karakter[i]["kanan"] = null
+		db_karakter[i]["stats"] = { "hp": 100.0, "hunger": 100.0, "thirst": 100.0, "stamina": 100.0, "sanity": 100.0 }
+		# Posisi awal diambil dari posisi editor saat ini
+		db_karakter[i]["pos"] = char_nodes[i].global_position
+
+func switch_character():
+	save_current_data_to_ram()
+	char_nodes[current_char_index].set_active(false)
+	current_char_index = (current_char_index + 1) % 3
+	load_character_data(current_char_index)
+
+func save_current_data_to_ram():
+	var data = db_karakter[current_char_index]
+	data["tas"] = tas_isi
+	data["kiri"] = item_tangan_kiri
+	data["kanan"] = item_tangan_kanan
+	data["stats"]["hp"] = health
+	data["stats"]["hunger"] = hunger
+	data["stats"]["thirst"] = thirst
+	data["stats"]["stamina"] = stamina
+	data["stats"]["sanity"] = sanity
+	# Simpan posisi karakter aktif saat ini
+	data["pos"] = char_nodes[current_char_index].global_position
+
+func load_character_data(index):
+	var data = db_karakter[index]
+	tas_isi = data["tas"]
+	item_tangan_kiri = data["kiri"]
+	item_tangan_kanan = data["kanan"]
+	max_slot_saat_ini = data["max_tas"]
+	punya_tangan_kanan = data["puse_kanan"]
+	
+	health = data["stats"]["hp"]
+	hunger = data["stats"]["hunger"]
+	thirst = data["stats"]["thirst"]
+	stamina = data["stats"]["stamina"]
+	sanity = data["stats"]["sanity"]
+	
+	player_aktif = char_nodes[index]
+	slot_kanan_box.visible = punya_tangan_kanan
+	update_ui_inventory()
+	update_ui_visual() 
+	char_nodes[index].set_active(true)
+
+# ==========================================
+# 6. UI & HELPER
+# ==========================================
+# Bagian ini sama seperti sebelumnya, tapi cek fungsi setup_pause_menu di bawah!
+
+func toggle_inventory_window():
+	inv_window.visible = !inv_window.visible
+	update_ui_inventory()
+	if inv_window.visible and tas_isi.size() > 0:
+		await get_tree().process_frame
+		if grid_container.get_child_count() > 0:
+			grid_container.get_child(0).grab_focus()
+
+func tambah_item_ke_tas(tipe, amount, icon_path):
+	if tas_isi.size() < max_slot_saat_ini:
+		var data = {"tipe": tipe, "restore": amount, "icon": icon_path}
+		tas_isi.append(data)
+		update_ui_inventory()
+		return true
+	return false
+
 func update_ui_inventory():
-	# 1. Update Icon Tangan (Sama kayak dulu)
 	if item_tangan_kiri: slot_kiri_icon.texture = load(item_tangan_kiri["icon"])
 	else: slot_kiri_icon.texture = null
-		
 	if item_tangan_kanan: slot_kanan_icon.texture = load(item_tangan_kanan["icon"])
 	else: slot_kanan_icon.texture = null
 	
-	# 2. Bersihkan Grid
-	for child in grid_container.get_children():
-		child.queue_free()
-		
-	# 3. Gambar Ulang Isi Tas
+	for child in grid_container.get_children(): child.queue_free()
+	
 	for i in range(tas_isi.size()):
 		var item = tas_isi[i]
-		var tombol_slot = Button.new()
-		tombol_slot.custom_minimum_size = Vector2(64, 64)
-		
-		# PENTING: Aktifkan Fokus Keyboard biar bisa navigasi Panah
-		tombol_slot.focus_mode = Control.FOCUS_ALL 
-		
-		# Set Icon
-		var icon_rect = TextureRect.new()
-		icon_rect.texture = load(item["icon"])
-		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon_rect.custom_minimum_size = Vector2(40, 40)
-		icon_rect.position = Vector2(12, 12)
-		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tombol_slot.add_child(icon_rect)
-		
-		# LOGIKA BARU: Deteksi Tombol L dan R pada item ini
-		# Kita pakai sinyal 'gui_input' untuk mendeteksi keyboard saat tombol ini fokus
-		tombol_slot.gui_input.connect(func(ev): _on_item_gui_input(ev, i))
-		
-		grid_container.add_child(tombol_slot)
+		var btn = Button.new()
+		btn.custom_minimum_size = Vector2(64, 64)
+		btn.focus_mode = Control.FOCUS_ALL 
+		var icon = TextureRect.new()
+		icon.texture = load(item["icon"])
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon.position = Vector2(12, 12)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(icon)
+		btn.gui_input.connect(func(ev): _on_item_gui_input(ev, i))
+		grid_container.add_child(btn)
 
-# --- FUNGSI DETEKSI TOMBOL L / R (BARU) ---
 func _on_item_gui_input(event, index):
 	if event is InputEventKey and event.pressed:
-		
-		# Jika tekan L -> Masuk Kiri
 		if event.keycode == KEY_L:
 			equip_spesifik(index, "kiri")
-			get_viewport().set_input_as_handled() # Stop input biar gak nembus
-			
-		# Jika tekan R -> Masuk Kanan
-		elif event.keycode == KEY_R:
-			equip_spesifik(index, "kanan")
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_R:
+			if punya_tangan_kanan:
+				equip_spesifik(index, "kanan")
+				get_viewport().set_input_as_handled()
 
-# --- FUNGSI EQUIP CANGGIH (BARU) ---
-# Bisa tukar barang (Swap) kalau tangan penuh
 func equip_spesifik(index, sisi):
-	var barang_dari_tas = tas_isi[index]
-	
+	var barang_tas = tas_isi[index]
 	if sisi == "kiri":
-		# Kalau tangan kiri udah ada isinya, balikin ke tas dulu
-		if item_tangan_kiri != null:
-			tas_isi.append(item_tangan_kiri)
-		
-		# Pasang barang baru
-		item_tangan_kiri = barang_dari_tas
-		
+		if item_tangan_kiri: tas_isi.append(item_tangan_kiri)
+		item_tangan_kiri = barang_tas
 	elif sisi == "kanan":
-		# Kalau tangan kanan udah ada isinya, balikin ke tas dulu
-		if item_tangan_kanan != null:
-			tas_isi.append(item_tangan_kanan)
-			
-		# Pasang barang baru
-		item_tangan_kanan = barang_dari_tas
-
-	# Hapus barang yang tadi diambil dari tas
+		if item_tangan_kanan: tas_isi.append(item_tangan_kanan)
+		item_tangan_kanan = barang_tas
 	tas_isi.remove_at(index)
-	
-	# Refresh UI
 	update_ui_inventory()
-	
-	# KEMBALIKAN FOKUS KURSOR (PENTING)
-	# Karena tombolnya hancur saat refresh, fokus hilang. Kita harus set ulang.
-	await get_tree().process_frame # Tunggu UI jadi
+	await get_tree().process_frame
 	if grid_container.get_child_count() > 0:
-		# Coba fokus ke index yang sama, atau mundur 1 kalau indexnya ilang
-		var new_index = clamp(index, 0, grid_container.get_child_count() - 1)
-		grid_container.get_child(new_index).grab_focus()
-
-# --- FUNGSI AMBIL BARANG (DIPANGGIL ITEM) ---
-# Diubah: Tidak langsung dimakan, tapi masuk tas
-func tambah_item_ke_tas(tipe, amount, icon_path):
-	if tas_isi.size() < max_slot_tas:
-		# Buat data barang
-		var data_barang = {
-			"tipe": tipe,
-			"restore": amount,
-			"icon": icon_path
-		}
-		tas_isi.append(data_barang)
-		print("Barang masuk tas: ", tipe)
-		update_ui_inventory() # Refresh gambar tas
-		return true # Berhasil ambil
-	else:
-		print("TAS PENUH!")
-		return false # Gagal ambil
-
-func equip_dari_tas(index):
-	# Ambil barang dari array tas
-	var barang = tas_isi[index]
-	
-	# Pindahkan ke tangan kiri (Contoh sederhana: Selalu ke kiri dulu)
-	# Kalau mau canggih: Cek mana yang kosong
-	if item_tangan_kiri == null:
-		item_tangan_kiri = barang
-		tas_isi.remove_at(index) # Hapus dari tas
-	elif item_tangan_kanan == null:
-		item_tangan_kanan = barang
-		tas_isi.remove_at(index)
-	else:
-		print("Tangan Penuh! Buang/Pakai dulu.")
-	
-	update_ui_inventory()
+		var new_idx = clamp(index, 0, grid_container.get_child_count()-1)
+		grid_container.get_child(new_idx).grab_focus()
 
 func gunakan_item_tangan(sisi):
 	var barang = null
@@ -204,28 +264,35 @@ func gunakan_item_tangan(sisi):
 	elif sisi == "kanan": barang = item_tangan_kanan
 	
 	if barang:
-		# EFEK MAKAN/MINUM
 		match barang["tipe"]:
 			"food": hunger += barang["restore"]
 			"drinks": thirst += barang["restore"]
 			"object": sanity += barang["restore"]
 		
-		print("Memakai item: ", barang["tipe"])
-		
-		# Hapus dari tangan setelah dipakai
 		if sisi == "kiri": item_tangan_kiri = null
 		elif sisi == "kanan": item_tangan_kanan = null
-		
-		# Clamp stats & Update Visual
 		clamp_stats()
-		update_ui_visual()
 		update_ui_inventory()
 
-# --- FUNGSI STANDAR LAINNYA (SAMA KAYAK DULU) ---
+func handle_sanity_stamina(delta):
+	if player_aktif.velocity == Vector2.ZERO:
+		sanity -= 3.0 * delta
+		stamina = clamp(stamina + (15.0 * delta), 0, max_val)
+	else:
+		sanity += 5.0 * delta
+	sanity = clamp(sanity, 0, max_val)
+
+func kurangi_stamina_lari(delta):
+	stamina = clamp(stamina - (8.0 * delta), 0, max_val)
+
+func update_stats_decay(delta):
+	hunger -= ((max_val / 3.0) / seconds_per_day) * delta
+	thirst -= (max_val / seconds_per_day) * delta
+	clamp_stats()
+
 func clamp_stats():
 	health = clamp(health, 0, max_val); hunger = clamp(hunger, 0, max_val)
-	thirst = clamp(thirst, 0, max_val); sanity = clamp(sanity, 0, max_val)
-	stamina = clamp(stamina, 0, max_val)
+	thirst = clamp(thirst, 0, max_val)
 
 func setup_tema_waktu():
 	gradient_warna.add_point(0.0, Color("1e1e32")); gradient_warna.add_point(0.1, Color("ffb275"))
@@ -240,21 +307,6 @@ func update_warna_langit():
 	if day_night_modulate:
 		day_night_modulate.color = gradient_warna.sample(current_time / seconds_per_day)
 
-func update_stats_decay(delta):
-	hunger -= ((max_val / 3.0) / seconds_per_day) * delta
-	thirst -= (max_val / seconds_per_day) * delta
-
-func handle_sanity_mechanic(delta):
-	if player.velocity == Vector2.ZERO: sanity -= 3.0 * delta
-	else: sanity += 5.0 * delta
-	sanity = clamp(sanity, 0, max_val)
-
-func handle_stamina_regen(delta):
-	if player.velocity == Vector2.ZERO: stamina = clamp(stamina + (15.0 * delta), 0, max_val)
-	
-func kurangi_stamina_lari(delta):
-	stamina = clamp(stamina - (5.0 * delta), 0, max_val)
-
 func update_ui_visual():
 	if ui_health: ui_health.value = health
 	if ui_hunger: ui_hunger.value = hunger
@@ -262,11 +314,21 @@ func update_ui_visual():
 	if ui_stamina: ui_stamina.value = stamina
 	if ui_sanity: ui_sanity.value = sanity
 
-# PAUSE & SAVE (SEDERHANA)
+func setup_pause_menu():
+	var btn_save = $"../CanvasLayer/PauseMenu/VBoxContainer/TombolSave"
+	var btn_exit = $"../CanvasLayer/PauseMenu/VBoxContainer/TombolKeluar"
+	
+	# --- PERBAIKAN TOMBOL SAVE ---
+	# Sekarang tombol save akan memanggil fungsi save_game_to_disk()
+	if btn_save: 
+		btn_save.pressed.disconnect(save_game_to_disk) if btn_save.pressed.is_connected(save_game_to_disk) else null
+		btn_save.pressed.connect(save_game_to_disk)
+		
+	if btn_exit: 
+		btn_exit.pressed.connect(func(): get_tree().quit())
+
 func toggle_pause():
 	var is_paused = get_tree().paused
 	get_tree().paused = !is_paused
-	if pause_menu: pause_menu.visible = !is_paused
-
-func save_game(): print("Save Placeholder"); toggle_pause()
-func quit_game(): get_tree().quit()
+	var pm = $"../CanvasLayer/PauseMenu"
+	if pm: pm.visible = !is_paused

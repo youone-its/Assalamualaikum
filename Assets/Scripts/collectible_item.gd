@@ -2,16 +2,13 @@ extends Area2D
 
 var item_type = ""
 var restore_amount = 0.0
-var texture_path_saved = "" # Simpan path gambar
-
+var texture_path_saved = ""
 var player_terdekat = null
 
 func setup_item(kategori: String, path_gambar: String):
-	# Simpan path buat dikirim ke inventory nanti
 	texture_path_saved = path_gambar
 	$Sprite2D.texture = load(path_gambar)
 	item_type = kategori
-	
 	match item_type:
 		"food": restore_amount = 20.0
 		"drinks": restore_amount = 30.0
@@ -19,29 +16,31 @@ func setup_item(kategori: String, path_gambar: String):
 
 func _ready():
 	z_index = 5
-	$PickupButton.text = "[E]"
 	$PickupButton.visible = false
-	$PickupButton.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$PickupButton.text = "[E]"
+	# Animasi
+	scale = Vector2(0, 0)
+	var tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BOUNCE)
 
 func _input(event):
-	if event.is_action_pressed("interact") and player_terdekat:
+	# Cek input HANYA jika player_terdekat valid
+	if event.is_action_pressed("interact") and player_terdekat != null:
 		proses_ambil_barang()
 
 func _on_body_entered(body):
-	if body.name == "CharacterBody2D":
+	# Cek GRUP, bukan nama node
+	if body.is_in_group("players"):
 		player_terdekat = body
 		$PickupButton.visible = true
 
 func _on_body_exited(body):
-	if body.name == "CharacterBody2D":
+	if body == player_terdekat:
 		player_terdekat = null
 		$PickupButton.visible = false
 
 func proses_ambil_barang():
 	if player_terdekat and player_terdekat.has_method("ambil_item"):
-		# KIRIM JUGA TEXTURE PATH-NYA
 		var sukses = player_terdekat.ambil_item(item_type, restore_amount, texture_path_saved)
-		
-		# Hanya hapus barang kalau tas muat (sukses)
 		if sukses:
 			queue_free()

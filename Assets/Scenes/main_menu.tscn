@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://gxbcxtjjnj5"]
+[gd_scene load_steps=17 format=3 uid="uid://gxbcxtjjnj5"]
 
 [ext_resource type="Texture2D" uid="uid://cluehm6rovn2i" path="res://Assets/Background/SIAM.jpeg" id="1_x6jn2"]
 [ext_resource type="Texture2D" uid="uid://cvdklbbxfyit" path="res://Assets/Sprites/player.png" id="2_tanm1"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" uid="uid://d0li831jrt4ye" path="res://Assets/Scripts/survival_system.gd" id="4_tanm1"]
 [ext_resource type="Script" uid="uid://1y0av51fhtqf" path="res://Assets/Scripts/item_spawner.gd" id="5_6qsvb"]
 [ext_resource type="PackedScene" uid="uid://c1w4p6xd35ih1" path="res://Assets/Scenes/collectible_item.tscn" id="6_fadmi"]
+[ext_resource type="Texture2D" uid="uid://cp7u3iexdm4qw" path="res://Assets/Sprites/enemy_1.png" id="6_xkmpe"]
+[ext_resource type="Texture2D" uid="uid://chxpkay1qtxo4" path="res://Assets/Sprites/_-removebg-preview.png" id="7_pd3f2"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_fadmi"]
 radius = 22.0
@@ -37,21 +39,21 @@ scale = Vector2(3, 3.139)
 texture = ExtResource("1_x6jn2")
 centered = false
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+[node name="Person" type="CharacterBody2D" parent="." groups=["players"]]
 position = Vector2(1, 0)
 script = ExtResource("3_6qsvb")
 
-[node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D"]
+[node name="Sprite2D" type="Sprite2D" parent="Person"]
 scale = Vector2(5, 5)
 texture = ExtResource("2_tanm1")
 region_enabled = true
 region_rect = Rect2(0, 0, 16, 16)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Person"]
 position = Vector2(0, 3)
 shape = SubResource("CapsuleShape2D_fadmi")
 
-[node name="Camera2D" type="Camera2D" parent="CharacterBody2D"]
+[node name="Camera2D" type="Camera2D" parent="Person"]
 limit_left = 0
 limit_top = 0
 limit_right = 1644
@@ -62,9 +64,67 @@ drag_top_margin = 0.0
 drag_right_margin = 0.0
 drag_bottom_margin = 0.0
 
-[node name="CanvasLayer" type="CanvasLayer" parent="CharacterBody2D"]
+[node name="Hexapod" type="CharacterBody2D" parent="." groups=["players"]]
+position = Vector2(200, 0)
+script = ExtResource("3_6qsvb")
 
-[node name="PauseMenu" type="ColorRect" parent="CharacterBody2D/CanvasLayer"]
+[node name="Sprite2D" type="Sprite2D" parent="Hexapod"]
+scale = Vector2(5, 5)
+texture = ExtResource("6_xkmpe")
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hexapod"]
+position = Vector2(0, 3)
+shape = SubResource("CapsuleShape2D_fadmi")
+
+[node name="Camera2D" type="Camera2D" parent="Hexapod"]
+limit_left = 0
+limit_top = 0
+limit_right = 1644
+limit_bottom = 2649
+position_smoothing_enabled = true
+drag_left_margin = 0.0
+drag_top_margin = 0.0
+drag_right_margin = 0.0
+drag_bottom_margin = 0.0
+
+[node name="Quadruped" type="CharacterBody2D" parent="." groups=["players"]]
+position = Vector2(1, 200)
+script = ExtResource("3_6qsvb")
+
+[node name="Sprite2D" type="Sprite2D" parent="Quadruped"]
+texture = ExtResource("7_pd3f2")
+region_enabled = true
+region_rect = Rect2(65, 50, 100, 100)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Quadruped"]
+position = Vector2(0, 3)
+shape = SubResource("CapsuleShape2D_fadmi")
+
+[node name="Camera2D" type="Camera2D" parent="Quadruped"]
+limit_left = 0
+limit_top = 0
+limit_right = 1644
+limit_bottom = 2649
+position_smoothing_enabled = true
+drag_left_margin = 0.0
+drag_top_margin = 0.0
+drag_right_margin = 0.0
+drag_bottom_margin = 0.0
+
+[node name="item_spawner" type="Node" parent="."]
+script = ExtResource("5_6qsvb")
+item_scene = ExtResource("6_fadmi")
+
+[node name="DayNightCycle" type="CanvasModulate" parent="."]
+
+[node name="SurvivalSystem" type="Node" parent="."]
+script = ExtResource("4_tanm1")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="PauseMenu" type="ColorRect" parent="CanvasLayer"]
 process_mode = 3
 visible = false
 anchors_preset = 15
@@ -74,7 +134,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.011764706, 0.011764706, 0, 0.4745098)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CharacterBody2D/CanvasLayer/PauseMenu"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PauseMenu"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -88,41 +148,41 @@ offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TombolSave" type="Button" parent="CharacterBody2D/CanvasLayer/PauseMenu/VBoxContainer"]
+[node name="TombolSave" type="Button" parent="CanvasLayer/PauseMenu/VBoxContainer"]
 layout_mode = 2
 text = "Save Game"
 
-[node name="TombolKeluar" type="Button" parent="CharacterBody2D/CanvasLayer/PauseMenu/VBoxContainer"]
+[node name="TombolKeluar" type="Button" parent="CanvasLayer/PauseMenu/VBoxContainer"]
 layout_mode = 2
 text = "Keluar"
 
-[node name="StatusBars" type="VBoxContainer" parent="CharacterBody2D/CanvasLayer"]
+[node name="StatusBars" type="VBoxContainer" parent="CanvasLayer"]
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="HealthBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+[node name="HealthBar" type="ProgressBar" parent="CanvasLayer/StatusBars"]
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_cbhea")
 theme_override_styles/fill = SubResource("StyleBoxFlat_tanm1")
 step = 0.1
 
-[node name="HungerBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+[node name="HungerBar" type="ProgressBar" parent="CanvasLayer/StatusBars"]
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_6qsvb")
 
-[node name="ThirstBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+[node name="ThirstBar" type="ProgressBar" parent="CanvasLayer/StatusBars"]
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_fadmi")
 
-[node name="StaminaBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+[node name="StaminaBar" type="ProgressBar" parent="CanvasLayer/StatusBars"]
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_shbfh")
 
-[node name="SanityBar" type="ProgressBar" parent="CharacterBody2D/CanvasLayer/StatusBars"]
+[node name="SanityBar" type="ProgressBar" parent="CanvasLayer/StatusBars"]
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hxcs8")
 
-[node name="HUD_Bawah" type="HBoxContainer" parent="CharacterBody2D/CanvasLayer"]
+[node name="HUD_Bawah" type="HBoxContainer" parent="CanvasLayer"]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
@@ -136,33 +196,33 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_constants/separation = 20
 
-[node name="SlotKiri" type="PanelContainer" parent="CharacterBody2D/CanvasLayer/HUD_Bawah"]
+[node name="SlotKiri" type="PanelContainer" parent="CanvasLayer/HUD_Bawah"]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TextureRect" type="TextureRect" parent="CharacterBody2D/CanvasLayer/HUD_Bawah/SlotKiri"]
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/HUD_Bawah/SlotKiri"]
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="IconTas" type="TextureRect" parent="CharacterBody2D/CanvasLayer/HUD_Bawah"]
+[node name="IconTas" type="TextureRect" parent="CanvasLayer/HUD_Bawah"]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 texture = ExtResource("4_shbfh")
 
-[node name="SlotKanan" type="PanelContainer" parent="CharacterBody2D/CanvasLayer/HUD_Bawah"]
+[node name="SlotKanan" type="PanelContainer" parent="CanvasLayer/HUD_Bawah"]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TextureRect" type="TextureRect" parent="CharacterBody2D/CanvasLayer/HUD_Bawah/SlotKanan"]
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/HUD_Bawah/SlotKanan"]
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="InventoryWindow" type="Panel" parent="CharacterBody2D/CanvasLayer"]
+[node name="InventoryWindow" type="Panel" parent="CanvasLayer"]
 visible = false
 anchors_preset = 8
 anchor_left = 0.5
@@ -176,7 +236,7 @@ offset_bottom = 180.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="GridBarang" type="GridContainer" parent="CharacterBody2D/CanvasLayer/InventoryWindow"]
+[node name="GridBarang" type="GridContainer" parent="CanvasLayer/InventoryWindow"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -186,12 +246,3 @@ grow_vertical = 2
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 columns = 5
-
-[node name="SurvivalSystem" type="Node" parent="CharacterBody2D"]
-script = ExtResource("4_tanm1")
-
-[node name="item_spawner" type="Node" parent="."]
-script = ExtResource("5_6qsvb")
-item_scene = ExtResource("6_fadmi")
-
-[node name="DayNightCycle" type="CanvasModulate" parent="."]
