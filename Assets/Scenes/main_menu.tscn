@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://gxbcxtjjnj5"]
+[gd_scene load_steps=19 format=3 uid="uid://gxbcxtjjnj5"]
 
 [ext_resource type="Texture2D" uid="uid://cluehm6rovn2i" path="res://Assets/Background/SIAM.jpeg" id="1_x6jn2"]
 [ext_resource type="Texture2D" uid="uid://cvdklbbxfyit" path="res://Assets/Sprites/player.png" id="2_tanm1"]
@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://c1w4p6xd35ih1" path="res://Assets/Scenes/collectible_item.tscn" id="6_fadmi"]
 [ext_resource type="Texture2D" uid="uid://cp7u3iexdm4qw" path="res://Assets/Sprites/enemy_1.png" id="6_xkmpe"]
 [ext_resource type="Texture2D" uid="uid://chxpkay1qtxo4" path="res://Assets/Sprites/_-removebg-preview.png" id="7_pd3f2"]
+[ext_resource type="Script" uid="uid://dnc7f7jtc7krf" path="res://Assets/Scripts/Minimap.gd" id="10_pd3f2"]
+[ext_resource type="Script" uid="uid://bjjvfj8mmiaa2" path="res://Assets/Scripts/marker_menu.gd" id="11_jkcs5"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_fadmi"]
 radius = 22.0
@@ -246,3 +248,48 @@ grow_vertical = 2
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 columns = 5
+
+[node name="Minimap" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -152.0
+offset_right = -2.0
+offset_bottom = 150.0
+grow_horizontal = 0
+script = ExtResource("10_pd3f2")
+
+[node name="MarkerMenu" type="PanelContainer" parent="CanvasLayer"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -4.0
+offset_top = -22.0
+offset_right = 4.0
+offset_bottom = 22.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("11_jkcs5")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MarkerMenu"]
+layout_mode = 2
+
+[node name="Consumable" type="Button" parent="CanvasLayer/MarkerMenu/VBoxContainer"]
+layout_mode = 2
+text = "Consumable"
+
+[node name="Collection" type="Button" parent="CanvasLayer/MarkerMenu/VBoxContainer"]
+layout_mode = 2
+text = "Collection"
+
+[node name="Important" type="Button" parent="CanvasLayer/MarkerMenu/VBoxContainer"]
+layout_mode = 2
+text = "Important"
+
+[node name="Batal" type="Button" parent="CanvasLayer/MarkerMenu/VBoxContainer"]
+layout_mode = 2
+text = "Batal"

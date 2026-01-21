@@ -9,6 +9,7 @@ extends Node
 	$"../Hexapod",   # Index 1
 	$"../Quadruped"  # Index 2
 ]
+@onready var ui_marker_menu = $"../CanvasLayer/MarkerMenu"
 
 # Path File Save
 const SAVE_PATH = "user://savegame.save"
@@ -35,6 +36,9 @@ var item_tangan_kiri = null
 var item_tangan_kanan = null
 var max_slot_saat_ini = 10
 var punya_tangan_kanan = true
+
+# DATABASE MARKERS (Array berisi Vector2 koordinat)
+var list_markers = []
 
 @onready var inv_window = $"../CanvasLayer/InventoryWindow"
 @onready var grid_container = $"../CanvasLayer/InventoryWindow/GridBarang"
@@ -91,6 +95,10 @@ func _input(event):
 	if event.is_action_pressed("slot_kiri"): gunakan_item_tangan("kiri")
 	if event.is_action_pressed("slot_kanan"):
 		if punya_tangan_kanan: gunakan_item_tangan("kanan")
+	if event.is_action_pressed("tanam_marker") and player_aktif:
+		# JANGAN LANGSUNG SIMPAN, TAPI BUKA MENU
+		if ui_marker_menu:
+			ui_marker_menu.buka_menu()
 
 # ==========================================
 # 4. SISTEM SAVE & LOAD (DISK)
@@ -108,7 +116,8 @@ func save_game_to_disk():
 	var data_save = {
 		"database": db_karakter,
 		"current_idx": current_char_index,
-		"time": current_time
+		"time": current_time,
+		"markers": list_markers
 	}
 	
 	# 4. Tulis ke File
@@ -134,6 +143,10 @@ func load_game_from_disk():
 	for i in range(char_nodes.size()):
 		char_nodes[i].global_position = db_karakter[i]["pos"]
 	
+	if "markers" in data_save:
+		list_markers = data_save["markers"]
+	else:
+		list_markers = [] # Jaga-jaga save file lama
 	# 4. Aktifkan Karakter Terakhir
 	load_character_data(current_char_index)
 
@@ -332,3 +345,15 @@ func toggle_pause():
 	get_tree().paused = !is_paused
 	var pm = $"../CanvasLayer/PauseMenu"
 	if pm: pm.visible = !is_paused
+
+func simpan_marker_baru(tipe_pilihan):
+	var pos_sekarang = player_aktif.global_position
+	
+	# SIMPAN DATA SEBAGAI DICTIONARY (Posisi + Tipe)
+	var data_marker = {
+		"pos": pos_sekarang,
+		"tipe": tipe_pilihan
+	}
+	
+	list_markers.append(data_marker)
+	print("Marker tipe ", tipe_pilihan, " disimpan di: ", pos_sekarang)
